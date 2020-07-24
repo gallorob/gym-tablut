@@ -5,6 +5,7 @@ implements the two-players, asymmetric, turn-based board game of Tablut, a varia
 
 ## The board
 The board appears as follows:
+
 ![The board](gym_tablut/docs/board.png?raw=True)
 
 With the following pieces already placed:
