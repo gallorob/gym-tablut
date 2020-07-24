@@ -1,0 +1,1 @@
+from gym_tablut.envs.tablut_env import TablutEnv
