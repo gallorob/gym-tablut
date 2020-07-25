@@ -37,7 +37,18 @@ ASSETS = {
     }
 }
 
-ATTACKER = 1
-DEFENDER = 0
+DEF = 0
+ATK = 1
 
-STARTING_PLAYER = DEFENDER
+ATTACKER = 'attacker'
+DEFENDER = 'defender'
+KING = 'king'
+
+STARTING_PLAYER = DEF
+
+CAPTURE_REWARDS = {
+    ATTACKER: 1,
+    DEFENDER: 2,
+    KING: 16
+}
+

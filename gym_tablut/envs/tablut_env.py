@@ -1,7 +1,8 @@
 import gym
-from gym import spaces
+from gym import spaces, logger
 from gym.utils import seeding
-from gym_tablut.envs._pieces import *
+
+from gym_tablut.envs._game_engine import *
 
 
 class TablutEnv(gym.Env):
@@ -25,13 +26,47 @@ class TablutEnv(gym.Env):
         :param action: The action to apply
         :param player: The playing actor
         """
-        assert player in [ATTACKER, DEFENDER], "[ERR: step] Unrecognized player type: {}".format(player)
+        assert player in [ATK, DEF], "[ERR: step] Unrecognized player type: {}".format(player)
         assert self.action_space.contains(action), "[ERR: step] Unrecognized action: {}".format(action)
 
-        move = self.actions[action]
+        info = {}
+
+        if self.done:
+            logger.warn('Stop calling `step()` after the episode is done! Use `reset()`')
+            rewards = 0
+        else:
+            logger.debug('{} moved {}'.format('Attacker' if player == ATK else 'Defender', self.actions[action]))
+
+            move = split_move(self.actions[action])
+            rewards, captured = apply_move(self.board, move)
+
+            # remove captured piece from render
+            for p in captured:
+                self.viewer.geoms.remove(p.texture)
+
+            # check if game is over
+            self.done = self.board.king_escaped or not self.board.king_alive
+            if self.done:
+                info['reason'] = 'King has escaped' if self.board.king_escaped else 'King was captured'
+                info['last_move'] = self.actions[action]
+                info['n_atks'] = self.board.count(ATTACKER)
+                info['n_defs'] = self.board.count(DEFENDER)
+
+            # update the action space
+            next_player = ATK if player == DEF else DEF
+            self.actions = legal_moves(self.board, next_player)
+            self.action_space = spaces.Discrete(len(self.actions))
+
+            if len(self.actions) == 0:
+                self.done = True
+                rewards = CAPTURE_REWARDS.get('king')
+                info['reason'] = 'No more moves available'
+                info['last_move'] = self.actions[action]
+                info['n_atks'] = self.board.count(ATTACKER)
+                info['n_defs'] = self.board.count(DEFENDER)
 
         # return observations, reward, done, infos
-        return np.array([]), 0, False, {}
+        return self.board.state, rewards, self.done, info
 
     def reset(self):
         """
@@ -39,8 +74,14 @@ class TablutEnv(gym.Env):
 
         :return: The state observations
         """
+        if self.viewer:
+            remove_pieces_from_render(self.viewer, self.board)
+        self.done = False
         # place pieces
-        self.board.fill_board()
+        self.board.reset()
+        fill_board(self.board)
+        if self.viewer:
+            add_pieces_to_render(self.viewer, self.board)
         # initialize action space
         self.actions = legal_moves(self.board, STARTING_PLAYER)
         self.action_space = spaces.Discrete(len(self.actions))
@@ -70,16 +111,7 @@ class TablutEnv(gym.Env):
             for ref in refs:
                 self.viewer.add_geom(ref)
             # pieces
-            for i in range(self.board.rows):
-                for j in range(self.board.cols):
-                    p = self.board.state[i][j]
-                    if p is not None:
-                        r, c = self.board.pos_to_arr(p.position)
-                        r += 1
-                        c += 1
-                        p.trans.set_translation(r * SQUARE_WIDTH + (SQUARE_WIDTH / 2),
-                                                c * SQUARE_HEIGHT + (SQUARE_HEIGHT / 2))
-                        self.viewer.add_geom(p.texture)
+            add_pieces_to_render(self.viewer, self.board)
 
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
@@ -132,3 +164,36 @@ def make_reference_geoms():
         img.add_attr(rendering.Transform(translation=(j * SQUARE_WIDTH + (SQUARE_WIDTH / 2), SQUARE_HEIGHT / 2)))
         geoms.append(img)
     return geoms
+
+
+def add_pieces_to_render(viewer: rendering.Viewer, board: Board):
+    """
+    Add the board's pieces to the renderer
+
+    :param viewer: The renderer
+    :param board: The board
+    """
+    for i in range(board.rows):
+        for j in range(board.cols):
+            p = board.state[i, j]
+            if p is not None:
+                r, c = pos_to_arr(board, p.position)
+                r += 1
+                c += 1
+                p.trans.set_translation(c * SQUARE_WIDTH + (SQUARE_WIDTH / 2),
+                                        (board.rows - r + 1) * SQUARE_HEIGHT + (SQUARE_HEIGHT / 2))
+                viewer.add_geom(p.texture)
+
+
+def remove_pieces_from_render(viewer, board):
+    """
+    Remove the board's pieces from the renderer
+
+    :param viewer: The renderer
+    :param board: The board
+    """
+    for i in range(board.rows):
+        for j in range(board.cols):
+            p = board.state[i][j]
+            if p is not None:
+                viewer.geoms.remove(p.texture)
