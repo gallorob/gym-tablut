@@ -64,7 +64,7 @@ You can install this environment by:
 4. Installing the environment: `pip install -e .`
 
 ## Example runs
-The following are two episodes with a random agent, rendering with a pause of .05 seconds between each move.
+The following are two episodes with a random agent, rendering with a pause of .5 seconds between each move.
 
 ### King escapes
 
