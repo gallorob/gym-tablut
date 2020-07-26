@@ -12,8 +12,8 @@ The board appears as follows:
 
 With the following pieces already placed:
 * the King: the middle piece in the middle, with the crown, sits on throne
-* The defenders: the white pieces surrounding the King in a cross formation
-* The attackers: the black pieces in a phalanx formation at each vertex of the cross
+* The Defenders: the white pieces surrounding the King in a cross formation
+* The Attackers: the black pieces in a phalanx formation at each vertex of the cross
 
 ### Rules
 The following rules are applied to the game:
@@ -28,8 +28,8 @@ Note that the rules are slightly different from the Linneus' variant and the his
 
 ### Goal of the game
 The game is asymmetric in its goal:
-- the defender has to move it king so that it reaches any of the edge of the board
-- the attacker has to capture the fleeing king
+- the Defender has to move its King so that it reaches any of the edges of the board
+- the Attacker has to capture the fleeing king
 
 The game also ends when no moves are available for the next player.
 
@@ -56,6 +56,12 @@ After each move, the observation is the board state. This can be represented in 
 1. A 2D matrix with the value of the piece on the tile (or 0 if there's no piece)
 2. A 3D matrix with RGB values for each piece (see the [example below](README.md#Example run))
 
+## Installation
+You can install this environment by:
+1. Downloading the repo: `git clone https://github.com/gallorob/gym-tablut.git`
+2. Move in the repo's root folder: `cd gym-tablut`
+3. Installing the requirements: `pip install -r requirements.txt`
+4. Installing the environment: `pip install -e .`
 
 ## Example runs
 The following are two episodes with a random agent, rendering with a pause of .05 seconds between each move.
@@ -93,3 +99,6 @@ Last move: e9-e7
 Remaining defenders: 8
 Remaining attackers: 15
 ```
+
+## Final notes
+PRs are welcome and please quote this repo if you end up using it 😀
