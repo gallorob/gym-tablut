@@ -6,6 +6,11 @@ from gym_tablut.envs._game_engine import *
 
 
 class TablutEnv(gym.Env):
+    metadata = {
+        'render.modes': ['human', 'rgb_array'],
+        'video.frames_per_second': 25
+    }
+
     def __init__(self):
         """
         Create the environment
@@ -18,15 +23,14 @@ class TablutEnv(gym.Env):
         self.steps_beyond_done = None
         self.viewer = None
         self.np_random = seeding.np_random(0)
+        self.player = STARTING_PLAYER
 
-    def step(self, action: int, player: int) -> Tuple[np.ndarray, int, bool, dict]:
+    def step(self, action: int) -> Tuple[np.ndarray, int, bool, dict]:
         """
         Apply a single step in the environment using the given action
 
         :param action: The action to apply
-        :param player: The playing actor
         """
-        assert player in [ATK, DEF], "[ERR: step] Unrecognized player type: {}".format(player)
         assert self.action_space.contains(action), "[ERR: step] Unrecognized action: {}".format(action)
 
         info = {}
@@ -35,14 +39,15 @@ class TablutEnv(gym.Env):
             logger.warn('Stop calling `step()` after the episode is done! Use `reset()`')
             rewards = 0
         else:
-            logger.debug('{} moved {}'.format('Attacker' if player == ATK else 'Defender', self.actions[action]))
+            logger.debug('{} moved {}'.format('Attacker' if self.player == ATK else 'Defender', self.actions[action]))
 
             move = split_move(self.actions[action])
             rewards, captured = apply_move(self.board, move)
 
             # remove captured piece from render
-            for p in captured:
-                self.viewer.geoms.remove(p.texture)
+            if self.viewer:
+                for p in captured:
+                    self.viewer.geoms.remove(p.texture)
 
             # check if game is over
             self.done = self.board.king_escaped or not self.board.king_alive
@@ -53,8 +58,8 @@ class TablutEnv(gym.Env):
                 info['n_defs'] = self.board.count(DEFENDER)
 
             # update the action space
-            next_player = ATK if player == DEF else DEF
-            self.actions = legal_moves(self.board, next_player)
+            self.player = ATK if self.player == DEF else DEF
+            self.actions = legal_moves(self.board, self.player)
             self.action_space = spaces.Discrete(len(self.actions))
 
             if len(self.actions) == 0:
@@ -65,8 +70,10 @@ class TablutEnv(gym.Env):
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
 
+        obs = self.board.as_state(RENDER_STATE)
+
         # return observations, reward, done, infos
-        return self.board.state, rewards, self.done, info
+        return obs, rewards, self.done, info
 
     def reset(self):
         """
@@ -85,7 +92,7 @@ class TablutEnv(gym.Env):
         # initialize action space
         self.actions = legal_moves(self.board, STARTING_PLAYER)
         self.action_space = spaces.Discrete(len(self.actions))
-        return self.board.state
+        return self.board.as_state(RENDER_STATE)
 
     def render(self, mode: str = 'human'):
         """

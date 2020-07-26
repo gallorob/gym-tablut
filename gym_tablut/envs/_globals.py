@@ -52,3 +52,19 @@ CAPTURE_REWARDS = {
     KING: 16
 }
 
+RENDER_STATE = False
+
+STATE_REP = {
+    ATTACKER: {
+        True: [1., 0., 0.],
+        False: 1
+    },
+    DEFENDER: {
+        True: [0., 0., 1.],
+        False: 2
+    },
+    KING: {
+        True: [0., 1., 0.],
+        False: 3
+    }
+}

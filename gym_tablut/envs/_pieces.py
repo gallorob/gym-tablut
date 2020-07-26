@@ -98,3 +98,23 @@ class Board:
                 if p is not None:
                     c += 1 if p.type == _type else 0
         return c
+
+    def as_state(self, render_state: bool = False) -> np.ndarray:
+        """
+        Convert the board to an observation state.
+
+        The result is either a matrix of values or a RGB matrix.
+
+        :param render_state: If True, converts to a RGB matrix
+        :return: A matrix of values
+        """
+        shape = (self.rows, self.cols, 3) if render_state else (self.rows, self.cols)
+        state = np.zeros(shape)
+        # fill matrix
+        for i in range(self.rows):
+            for j in range(self.cols):
+                p = self.state[i][j]
+                if p is not None:
+                    state[i, j] = STATE_REP.get(p.type).get(render_state)
+        # return
+        return state
