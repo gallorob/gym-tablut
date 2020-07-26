@@ -24,6 +24,7 @@ class TablutEnv(gym.Env):
         self.viewer = None
         self.np_random = seeding.np_random(0)
         self.player = STARTING_PLAYER
+        self.last_moves = []
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool, dict]:
         """
@@ -44,25 +45,50 @@ class TablutEnv(gym.Env):
             move = split_move(self.actions[action])
             rewards, captured = apply_move(self.board, move)
 
-            # remove captured piece from render
-            if self.viewer:
+            if len(captured) > 0:
+                s = []
+                # remove captured piece from render
                 for p in captured:
-                    self.viewer.geoms.remove(p.texture)
+                    s.append('{} in {}'.format(p.type, str_position(p.position)))
+                    if self.viewer:
+                        self.viewer.geoms.remove(p.texture)
+                logger.debug('Captured {} piece(s): {}'.format(len(captured), ';'.join(s)))
 
             # check if game is over
             self.done = self.board.king_escaped or not self.board.king_alive
             if self.done:
-                info['reason'] = 'King has escaped' if self.board.king_escaped else 'King was captured'
+                reason = 'King has escaped' if self.board.king_escaped else 'King was captured'
+                logger.debug('Match ended; reason: {}; Winner: {}'.format(reason,
+                                                                          'DEF' if self.board.king_escaped else 'ATK'))
+                info['reason'] = reason
                 info['last_move'] = self.actions[action]
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
+            # threefold repetition check
+            if check_threefold_repetition(self.last_moves, self.actions[action]):
+                logger.debug('Match ended; reason: Threefold repetition; Winner: {}'.format('ATK' if self.player == DEF
+                                                                                            else 'DEF'))
+                self.done = True
+                rewards = DRAW_REWARD
+                info['reason'] = 'Threefold repetition'
+                info['last_move'] = self.actions[action]
+                info['n_atks'] = self.board.count(ATTACKER)
+                info['n_defs'] = self.board.count(DEFENDER)
+            else:
+                if len(self.last_moves) == 8:
+                    self.last_moves.pop()
+                self.last_moves.append(self.actions[action])
 
             # update the action space
             self.player = ATK if self.player == DEF else DEF
             self.actions = legal_moves(self.board, self.player)
             self.action_space = spaces.Discrete(len(self.actions))
 
+            # no moves for the opponent check
             if len(self.actions) == 0:
+                logger.debug('Match ended; reason: No more moves available; Winner: {}'.format('ATK' if
+                                                                                               self.player == DEF
+                                                                                               else 'DEF'))
                 self.done = True
                 rewards = CAPTURE_REWARDS.get('king')
                 info['reason'] = 'No more moves available'
@@ -72,7 +98,6 @@ class TablutEnv(gym.Env):
 
         obs = self.board.as_state(RENDER_STATE)
 
-        # return observations, reward, done, infos
         return obs, rewards, self.done, info
 
     def reset(self):
@@ -92,6 +117,7 @@ class TablutEnv(gym.Env):
         # initialize action space
         self.actions = legal_moves(self.board, STARTING_PLAYER)
         self.action_space = spaces.Discrete(len(self.actions))
+        logger.debug('New match started')
         return self.board.as_state(RENDER_STATE)
 
     def render(self, mode: str = 'human'):

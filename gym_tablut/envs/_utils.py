@@ -51,6 +51,30 @@ def on_edge_arr(board: Board, position: Tuple[int, int]) -> bool:
     return i == 0 or j == 0 or i == board.rows - 1 or j == board.cols - 1
 
 
+def on_throne_pos(board: Board, position: Tuple[str, int]) -> bool:
+    """
+    Check if the position is the throne
+
+    :param board:  The board
+    :param position: The position
+    :return: True if it's a throne position, False otherwise
+    """
+    i, j = pos_to_arr(board, position)
+    return on_throne_arr(board, (i, j))
+
+
+def on_throne_arr(board: Board, position: Tuple[int, int]) -> bool:
+    """
+    Check if the array position is the throne
+
+    :param board: The board
+    :param position: The array position
+    :return: True if it's a throne position, False otherwise
+    """
+    i, j = position
+    return i == board.rows // 2 and j == board.cols // 2
+
+
 def out_of_board_pos(board, position: Tuple[str, int]) -> bool:
     """
     Check if the position is outside the board
@@ -96,6 +120,31 @@ def split_move(move: str) -> Tuple[Tuple[str, int], Tuple[str, int]]:
     p_from = (move[0], int(move[1]))
     p_to = (move[3], int(move[4]))
     return p_from, p_to
+
+
+# Current State has to have the same From/To as the one four moves before (-4) and the same To as the one eight
+# moves prior (-8). The -1 move has to have the same from/to as the -5, the -2 as the -6 and the -3 as the -7
+def check_threefold_repetition(last_moves, last_move):
+    """
+    Check for the threefold repetition rule.
+
+    From Fellhuhn's Hnefatafl app: the last move has to be the same as the one four moves (-4) before and with the same
+    destination tile as the one eight moves prior (-8). The (-1) move has to be the same as the (-5), the (-2) as the
+    (-6) and the (-3) as the (-7)
+
+
+    :param last_moves: The last move that have been played
+    :param last_move: A queue with the latest moves
+    :return: True if the threefold repetition rule is satisfied, False otherwise
+    """
+    if len(last_moves) < 8:
+        return False
+    else:
+        return ((last_move == last_moves[4]) and
+                (str_position(split_move(last_move)[1]) == str_position(split_move(last_moves[0])[1])) and
+                last_moves[7] == last_moves[3] and
+                last_moves[6] == last_moves[2] and
+                last_moves[5] == last_moves[1])
 
 
 def fill_board(board: Board):

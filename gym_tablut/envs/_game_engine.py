@@ -40,21 +40,20 @@ def apply_move(board: Board, move: Tuple[Tuple[str, int], Tuple[str, int]]) -> T
     board.state[i_f, j_f] = None
     board.state[i_t, j_t] = moved_piece
     update_piece_position(board, moved_piece, p_to)
-    # king can't capture but can escape
-    if moved_piece.type == KING:
-        board.king_escaped = on_edge_pos(board, moved_piece.position)
-        return CAPTURE_REWARDS.get(KING) if board.king_escaped else 0, []
-    else:
-        to_remove = process_captures(board, moved_piece)
-        reward = 0
-        for p in to_remove:
-            i, j = pos_to_arr(board, p.position)
-            board.state[i, j] = None
-            reward += CAPTURE_REWARDS.get(p.type)
-            # check if it was the king
-            if p.type == KING:
-                board.king_alive = False
-        return reward, to_remove
+    # check if king has escaped
+    if moved_piece.type == KING and on_edge_pos(board, moved_piece.position):
+        board.king_escaped = True
+        return CAPTURE_REWARDS.get(KING), []
+    to_remove = process_captures(board, moved_piece)
+    reward = 0
+    for p in to_remove:
+        i, j = pos_to_arr(board, p.position)
+        board.state[i, j] = None
+        reward += CAPTURE_REWARDS.get(p.type)
+        # check if it was the king
+        if p.type == KING:
+            board.king_alive = False
+    return reward, to_remove
 
 
 def legal_moves(board: Board, player: int) -> np.ndarray:
@@ -158,12 +157,19 @@ def _process_captures(board: Board, piece: Piece, inc_row: int, inc_col: int) ->
         middle_piece = board.state[i, j]
         if middle_piece is not None:
             if (piece.type == DEFENDER and middle_piece.type == ATTACKER) or \
+                    (piece.type == KING and middle_piece.type == ATTACKER) or \
                     (piece.type == ATTACKER and middle_piece.type == DEFENDER):
                 i += inc_row
                 j += inc_col
                 if not (out_of_board_arr(board, (i, j))):
                     outer_piece = board.state[i, j]
-                    if outer_piece is not None and piece.type == outer_piece.type:
+                    if outer_piece is not None and (piece.type == outer_piece.type or (piece.type == DEFENDER and
+                                                    outer_piece.type == KING) or (piece.type == KING and
+                                                    outer_piece.type == DEFENDER)):
+                        captures.append(middle_piece)
+                    elif outer_piece is None and ((piece.type == ATTACKER and middle_piece.type == DEFENDER) or
+                                                  ((piece.type == DEFENDER or piece.type == KING) and
+                                                   piece.type == ATTACKER)) and on_throne_arr(board, (i, j)):
                         captures.append(middle_piece)
 
             elif piece.type == ATTACKER and middle_piece.type == KING:
@@ -219,6 +225,6 @@ def __check_king(board: Board, king_arr: Tuple[int, int], row_inc: int, col_inc:
         if p is not None:
             return 1 if p.type == ATTACKER else 0
         else:
-            return 1 if i == board.rows // 2 and j == board.cols // 2 else 0
+            return 1 if on_throne_arr(board, (i, j)) else 0
     else:
         return 0
