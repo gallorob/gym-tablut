@@ -11,8 +11,10 @@ def update_piece_position(board: Board, piece: Piece, pos: Tuple[str, int]):
     :param piece: The piece to update
     :param pos: The new position
     """
+    # piece position
     piece.position = pos
     i, j = pos_to_arr(board, pos)
+    # piece visual position
     i += 1
     j += 1
     piece.trans.set_translation(j * SQUARE_WIDTH + (SQUARE_WIDTH / 2),
@@ -64,11 +66,11 @@ def legal_moves(board: Board, player: int) -> np.ndarray:
     :param player: The player (either ATTACKER or DEFENDER)
     :return: A numpy array of moves in string format `from`-`to`
     """
-    assert player in [ATK, DEF], "[ERR: legal_moves] Unrecognized player type: {}".format(player)
+    assert player in [ATK, DEF], f"[ERR: legal_moves] Unrecognized player type: {player}"
     moves = []
     for i in range(board.rows):
         for j in range(board.cols):
-            p = board.state[i][j]
+            p = board.state[i, j]
             if p is not None:
                 if p.type == ATTACKER and player == ATK:
                     moves.extend(_legal_moves(board, p))
@@ -86,10 +88,10 @@ def _legal_moves(board: Board, piece: Piece) -> List[str]:
     :return: A list of valid moves for the piece in the given board
     """
     moves = []
-    moves.extend(__legal_moves(board, piece, 0, -1))  # left
-    moves.extend(__legal_moves(board, piece, 1, 0))  # down
-    moves.extend(__legal_moves(board, piece, 0, 1))  # right
     moves.extend(__legal_moves(board, piece, -1, 0))  # up
+    moves.extend(__legal_moves(board, piece, 0, 1))   # right
+    moves.extend(__legal_moves(board, piece, 1, 0))   # down
+    moves.extend(__legal_moves(board, piece, 0, -1))  # left
     return moves
 
 
@@ -110,7 +112,7 @@ def __legal_moves(board: Board, piece: Piece, inc_row: int, inc_col: int) -> Lis
         j += inc_col
         if i < 0 or i > board.rows - 1 or j < 0 or j > board.cols - 1:
             break
-        p = board.state[i][j]
+        p = board.state[i, j]
         if p is None:
             # only king can cross or land on throne
             if piece.type != KING and i == board.rows // 2 and j == board.cols // 2:
@@ -132,10 +134,10 @@ def process_captures(board: Board, piece: Piece) -> List[Piece]:
     :return: The list of captured pieces
     """
     captures = []
-    captures.extend(_process_captures(board, piece, 0, -1))  # left
-    captures.extend(_process_captures(board, piece, 0, 1))  # right
     captures.extend(_process_captures(board, piece, -1, 0))  # up
-    captures.extend(_process_captures(board, piece, 1, 0))  # down
+    captures.extend(_process_captures(board, piece, 0, 1))   # right
+    captures.extend(_process_captures(board, piece, 1, 0))   # down
+    captures.extend(_process_captures(board, piece, 0, -1))  # left
     return captures
 
 
@@ -163,30 +165,31 @@ def _process_captures(board: Board, piece: Piece, inc_row: int, inc_col: int) ->
                 j += inc_col
                 if not (out_of_board_arr(board, (i, j))):
                     outer_piece = board.state[i, j]
-                    if outer_piece is not None and (piece.type == outer_piece.type or (piece.type == DEFENDER and
-                                                    outer_piece.type == KING) or (piece.type == KING and
-                                                    outer_piece.type == DEFENDER)):
+                    # normal capture
+                    if outer_piece is not None and (piece.type == outer_piece.type or
+                                                    (piece.type == DEFENDER and outer_piece.type == KING) or
+                                                    (piece.type == KING and outer_piece.type == DEFENDER)):
                         captures.append(middle_piece)
-                    elif outer_piece is None and ((piece.type == ATTACKER and middle_piece.type == DEFENDER) or
-                                                  ((piece.type == DEFENDER or piece.type == KING) and
-                                                   piece.type == ATTACKER)) and on_throne_arr(board, (i, j)):
+                    # capture next to throne
+                    elif outer_piece is None and on_throne_arr(board, (i, j)) and (
+                            (piece.type == ATTACKER and middle_piece.type == DEFENDER) or
+                            ((piece.type == DEFENDER or piece.type == KING) and piece.type == ATTACKER)):
                         captures.append(middle_piece)
-
+            # capture king
             elif piece.type == ATTACKER and middle_piece.type == KING:
                 # case 1: king is on the throne, need 4 pieces
                 # case 2: king is next to the throne, need 3 pieces
-                if _check_king(board, middle_piece) == 4:
-                    captures.append(middle_piece)
+                if on_throne_arr(board, (i, j)) or next_to_throne_arr(board, (i, j)):
+                    if _check_king(board, middle_piece) == 4:
+                        captures.append(middle_piece)
                 # case 3: king is free roaming
                 else:
-                    x, y = pos_to_arr(board, middle_piece.position)
-                    if not (x == board.rows // 2 and y == board.cols // 2):
-                        i += inc_row
-                        j += inc_col
-                        if not (out_of_board_arr(board, (i, j))):
-                            outer_piece = board.state[i, j]
-                            if outer_piece is not None and piece.type == outer_piece.type:
-                                captures.append(middle_piece)
+                    i += inc_row
+                    j += inc_col
+                    if not (out_of_board_arr(board, (i, j))):
+                        outer_piece = board.state[i, j]
+                        if outer_piece is not None and piece.type == outer_piece.type:
+                            captures.append(middle_piece)
     return captures
 
 
@@ -200,10 +203,10 @@ def _check_king(board: Board, king: Piece) -> int:
     """
     threats = 0
     i, j = pos_to_arr(board, king.position)
-    threats += __check_king(board, (i, j), 0, 1)
-    threats += __check_king(board, (i, j), 0, -1)
-    threats += __check_king(board, (i, j), 1, 0)  # down
     threats += __check_king(board, (i, j), -1, 0)  # up
+    threats += __check_king(board, (i, j), 0, 1)   # right
+    threats += __check_king(board, (i, j), 1, 0)   # down
+    threats += __check_king(board, (i, j), 0, -1)  # left
     return threats
 
 

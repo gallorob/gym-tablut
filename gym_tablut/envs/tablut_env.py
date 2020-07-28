@@ -15,15 +15,18 @@ class TablutEnv(gym.Env):
         """
         Create the environment
         """
+        # environment variables
         self.action_space = None
         self.actions = None
         self.observation_space = None
-        self.board = Board(N_ROWS, N_COLS)
         self.done = False
         self.steps_beyond_done = None
         self.viewer = None
+        # game variables
+        self.board = Board(N_ROWS, N_COLS)
         self.np_random = seeding.np_random(0)
         self.player = STARTING_PLAYER
+        self.rgb_state = RENDER_STATE
         self.last_moves = []
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool, dict]:
@@ -32,7 +35,7 @@ class TablutEnv(gym.Env):
 
         :param action: The action to apply
         """
-        assert self.action_space.contains(action), "[ERR: step] Unrecognized action: {}".format(action)
+        assert self.action_space.contains(action), f"[ERR: step] Unrecognized action: {action}"
 
         info = {}
 
@@ -40,7 +43,7 @@ class TablutEnv(gym.Env):
             logger.warn('Stop calling `step()` after the episode is done! Use `reset()`')
             rewards = 0
         else:
-            logger.debug('{} moved {}'.format('Attacker' if self.player == ATK else 'Defender', self.actions[action]))
+            logger.debug(f"{'Attacker' if self.player == ATK else 'Defender'} moved {self.actions[action]}")
 
             move = split_move(self.actions[action])
             rewards, captured = apply_move(self.board, move)
@@ -49,25 +52,24 @@ class TablutEnv(gym.Env):
                 s = []
                 # remove captured piece from render
                 for p in captured:
-                    s.append('{} in {}'.format(p.type, str_position(p.position)))
+                    s.append(f"{p.type} in {str_position(p.position)}")
                     if self.viewer:
                         self.viewer.geoms.remove(p.texture)
-                logger.debug('Captured {} piece(s): {}'.format(len(captured), ';'.join(s)))
+                logger.debug(f"Captured {len(captured)} piece(s): {';'.join(s)}")
 
             # check if game is over
             self.done = self.board.king_escaped or not self.board.king_alive
             if self.done:
                 reason = 'King has escaped' if self.board.king_escaped else 'King was captured'
-                logger.debug('Match ended; reason: {}; Winner: {}'.format(reason,
-                                                                          'DEF' if self.board.king_escaped else 'ATK'))
+                logger.debug(f"Match ended; reason: {reason}; Winner: {'DEF' if self.board.king_escaped else 'ATK'}")
                 info['reason'] = reason
                 info['last_move'] = self.actions[action]
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
             # threefold repetition check
             if check_threefold_repetition(self.last_moves, self.actions[action]):
-                logger.debug('Match ended; reason: Threefold repetition; Winner: {}'.format('ATK' if self.player == DEF
-                                                                                            else 'DEF'))
+                logger.debug(
+                    f"Match ended; reason: Threefold repetition; Winner: {'ATK' if self.player == DEF else 'DEF'}")
                 self.done = True
                 rewards = DRAW_REWARD
                 info['reason'] = 'Threefold repetition'
@@ -86,9 +88,8 @@ class TablutEnv(gym.Env):
 
             # no moves for the opponent check
             if len(self.actions) == 0:
-                logger.debug('Match ended; reason: No more moves available; Winner: {}'.format('ATK' if
-                                                                                               self.player == DEF
-                                                                                               else 'DEF'))
+                logger.debug(
+                    f"Match ended; reason: No more moves available; Winner: {'ATK' if self.player == DEF else 'DEF'}")
                 self.done = True
                 rewards = CAPTURE_REWARDS.get('king')
                 info['reason'] = 'No more moves available'
@@ -96,7 +97,7 @@ class TablutEnv(gym.Env):
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
 
-        obs = self.board.as_state(RENDER_STATE)
+        obs = self.board.as_state(self.rgb_state)
 
         return obs, rewards, self.done, info
 
@@ -118,7 +119,7 @@ class TablutEnv(gym.Env):
         self.actions = legal_moves(self.board, STARTING_PLAYER)
         self.action_space = spaces.Discrete(len(self.actions))
         logger.debug('New match started')
-        return self.board.as_state(RENDER_STATE)
+        return self.board.as_state(self.rgb_state)
 
     def render(self, mode: str = 'human'):
         """
@@ -139,10 +140,6 @@ class TablutEnv(gym.Env):
             throne.add_attr(rendering.Transform(translation=((N_COLS // 2 + 1) * SQUARE_WIDTH + (SQUARE_WIDTH / 2),
                                                              (N_ROWS // 2 + 1) * SQUARE_HEIGHT + (SQUARE_HEIGHT / 2))))
             self.viewer.add_geom(throne)
-            # references
-            refs = make_reference_geoms()
-            for ref in refs:
-                self.viewer.add_geom(ref)
             # pieces
             add_pieces_to_render(self.viewer, self.board)
 
@@ -165,6 +162,12 @@ def make_background_geoms():
     Create the checkerboard background for the board
     """
     geoms = []
+    # add the actual background
+    background = rendering.Image(ASSETS.get('background'), SCREEN_WIDTH, SCREEN_HEIGHT)
+    background.set_color(1., 1., 1.)
+    background.add_attr(rendering.Transform(translation=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+    geoms.append(background)
+    # add the tiles
     c = 0
     for i in range(N_ROWS, 0, -1):
         for j in range(1, N_COLS + 1):
@@ -176,26 +179,6 @@ def make_background_geoms():
             tile.set_color(r, g, b)
             c = 1 if c == 0 else 0
             geoms.append(tile)
-    return geoms
-
-
-def make_reference_geoms():
-    """
-    Create the row numbers and column letters to display next to the board
-    """
-    geoms = []
-    # add the row numbers from 9 to 1
-    for i in range(N_ROWS, 0, -1):
-        img = rendering.Image(ASSETS.get('rows').get(i - 1), SQUARE_WIDTH, SQUARE_HEIGHT)
-        img.set_color(1., 1., 1.)
-        img.add_attr(rendering.Transform(translation=(SQUARE_WIDTH / 2, i * SQUARE_HEIGHT + (SQUARE_HEIGHT / 2))))
-        geoms.append(img)
-    # add the column letters from a to i
-    for j in range(1, N_COLS + 1):
-        img = rendering.Image(ASSETS.get('columns').get(j - 1), SQUARE_WIDTH, SQUARE_HEIGHT)
-        img.set_color(1., 1., 1.)
-        img.add_attr(rendering.Transform(translation=(j * SQUARE_WIDTH + (SQUARE_WIDTH / 2), SQUARE_HEIGHT / 2)))
-        geoms.append(img)
     return geoms
 
 
@@ -218,7 +201,7 @@ def add_pieces_to_render(viewer: rendering.Viewer, board: Board):
                 viewer.add_geom(p.texture)
 
 
-def remove_pieces_from_render(viewer, board):
+def remove_pieces_from_render(viewer: rendering.Viewer, board: Board):
     """
     Remove the board's pieces from the renderer
 

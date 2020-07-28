@@ -75,6 +75,36 @@ def on_throne_arr(board: Board, position: Tuple[int, int]) -> bool:
     return i == board.rows // 2 and j == board.cols // 2
 
 
+def next_to_throne_arr(board: Board, position: Tuple[int, int]) -> bool:
+    """
+    Check if the array position is next to the throne
+
+    :param board: The board
+    :param position: The array position
+    :return: True if the position is next to the throne, False otherwise
+    """
+    return _next_to_throne_arr(board, position, -1, 0) or \
+           _next_to_throne_arr(board, position, 0, 1) or \
+           _next_to_throne_arr(board, position, 1, 0) or \
+           _next_to_throne_arr(board, position, 0, -1)
+
+
+def _next_to_throne_arr(board: Board, position: Tuple[int, int], row_inc: int, col_inc: int) -> bool:
+    """
+    Check if the position is next to the throne in the given trajectory
+
+    :param board: The board
+    :param position: The array position
+    :param row_inc: Trajectory: 1 for down, -1 for up, 0 for no change
+    :param col_inc: Trajectory: 1 for left, -1 for right, 0 for no change
+    :return: True if the position is next to the throne, False otherwise
+    """
+    (i, j) = position
+    i += row_inc
+    j += col_inc
+    return on_throne_arr(board, (i, j))
+
+
 def out_of_board_pos(board, position: Tuple[str, int]) -> bool:
     """
     Check if the position is outside the board
