@@ -54,7 +54,7 @@ A draw results in 0 reward.
 ### The observations
 After each move, the observation is the board state. This can be represented in two different ways:
 1. A 2D matrix with the value of the piece on the tile (or 0 if there's no piece)
-2. A 3D matrix with RGB values for each piece (see the examples below)
+2. A 3D matrix with RGB values for each piece (see the example below)
 
 ## Installation
 You can install this environment by:
@@ -100,5 +100,18 @@ Remaining defenders: 8
 Remaining attackers: 15
 ```
 
+## Citations
+Please use the bibtex below if you want to cite this repository in your publications:
+```
+@misc{gym-tablut,
+  author = {Gallotta Roberto},
+  title = {OpenAI gym environment based on the Tablut board game for Reinforcement Learning},
+  year = {2020},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/gallorob/gym-tablut}},
+}
+```
+
 ## Final notes
-PRs are welcome and please quote this repo if you end up using it 😀
+PRs are welcome 😀

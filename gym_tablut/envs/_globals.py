@@ -1,3 +1,11 @@
+import os
+
+assets_dir = os.path.dirname(__file__)
+assets_dir = os.path.join(assets_dir, 'assets')
+
+rows_dir = os.path.join(assets_dir, 'rows')
+columns_dir = os.path.join(assets_dir, 'columns')
+
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 600
 N_ROWS = 9
@@ -9,31 +17,31 @@ BOARD_COLOR_0 = [0.5, 0.33, 0.16]
 BOARD_COLOR_1 = [0.4, 0.26, 0.13]
 
 ASSETS = {
-    'defender': 'gym_tablut/envs/assets/defender.png',
-    'attacker': 'gym_tablut/envs/assets/attacker.png',
-    'king':     'gym_tablut/envs/assets/king.png',
-    'throne':   'gym_tablut/envs/assets/throne.png',
+    'defender': os.path.join(assets_dir, 'defender.png'),
+    'attacker': os.path.join(assets_dir, 'attacker.png'),
+    'king':     os.path.join(assets_dir, 'king.png'),
+    'throne':   os.path.join(assets_dir, 'throne.png'),
     'columns': {
-        0: 'gym_tablut/envs/assets/columns/1.png',
-        1: 'gym_tablut/envs/assets/columns/2.png',
-        2: 'gym_tablut/envs/assets/columns/3.png',
-        3: 'gym_tablut/envs/assets/columns/4.png',
-        4: 'gym_tablut/envs/assets/columns/5.png',
-        5: 'gym_tablut/envs/assets/columns/6.png',
-        6: 'gym_tablut/envs/assets/columns/7.png',
-        7: 'gym_tablut/envs/assets/columns/8.png',
-        8: 'gym_tablut/envs/assets/columns/9.png'
+        0: os.path.join(columns_dir, '1.png'),
+        1: os.path.join(columns_dir, '2.png'),
+        2: os.path.join(columns_dir, '3.png'),
+        3: os.path.join(columns_dir, '4.png'),
+        4: os.path.join(columns_dir, '5.png'),
+        5: os.path.join(columns_dir, '6.png'),
+        6: os.path.join(columns_dir, '7.png'),
+        7: os.path.join(columns_dir, '8.png'),
+        8: os.path.join(columns_dir, '9.png')
     },
     'rows': {
-        0: 'gym_tablut/envs/assets/rows/1.png',
-        1: 'gym_tablut/envs/assets/rows/2.png',
-        2: 'gym_tablut/envs/assets/rows/3.png',
-        3: 'gym_tablut/envs/assets/rows/4.png',
-        4: 'gym_tablut/envs/assets/rows/5.png',
-        5: 'gym_tablut/envs/assets/rows/6.png',
-        6: 'gym_tablut/envs/assets/rows/7.png',
-        7: 'gym_tablut/envs/assets/rows/8.png',
-        8: 'gym_tablut/envs/assets/rows/9.png',
+        0: os.path.join(rows_dir, '1.png'),
+        1: os.path.join(rows_dir, '2.png'),
+        2: os.path.join(rows_dir, '3.png'),
+        3: os.path.join(rows_dir, '4.png'),
+        4: os.path.join(rows_dir, '5.png'),
+        5: os.path.join(rows_dir, '6.png'),
+        6: os.path.join(rows_dir, '7.png'),
+        7: os.path.join(rows_dir, '8.png'),
+        8: os.path.join(rows_dir, '9.png')
     }
 }
 
