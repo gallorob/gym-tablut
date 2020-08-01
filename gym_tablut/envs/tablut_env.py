@@ -61,15 +61,16 @@ class TablutEnv(gym.Env):
             self.done = self.board.king_escaped or not self.board.king_alive
             if self.done:
                 reason = 'King has escaped' if self.board.king_escaped else 'King was captured'
-                logger.debug(f"Match ended; reason: {reason}; Winner: {'DEF' if self.board.king_escaped else 'ATK'}")
+                info['winner'] = 'DEF' if self.board.king_escaped else 'ATK'
                 info['reason'] = reason
                 info['last_move'] = self.actions[action]
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
+                logger.debug(f"Match ended; reason: {reason}; Winner: {info.get('winner')}")
             # threefold repetition check
             if check_threefold_repetition(self.last_moves, self.actions[action]):
                 logger.debug(
-                    f"Match ended; reason: Threefold repetition; Winner: {'ATK' if self.player == DEF else 'DEF'}")
+                    f"Match ended; reason: Threefold repetition; DRAW")
                 self.done = True
                 rewards = DRAW_REWARD
                 info['reason'] = 'Threefold repetition'
@@ -88,14 +89,15 @@ class TablutEnv(gym.Env):
 
             # no moves for the opponent check
             if len(self.actions) == 0:
-                logger.debug(
-                    f"Match ended; reason: No more moves available; Winner: {'ATK' if self.player == DEF else 'DEF'}")
                 self.done = True
                 rewards = CAPTURE_REWARDS.get('king')
+                info['winner'] = 'ATK' if self.player == DEF else 'DEF'
                 info['reason'] = 'No more moves available'
                 info['last_move'] = self.actions[action]
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
+                logger.debug(
+                    f"Match ended; reason: No more moves available; Winner: {info.get('winner')}")
 
         obs = self.board.as_state(self.rgb_state)
 
