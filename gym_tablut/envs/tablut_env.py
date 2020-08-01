@@ -38,6 +38,7 @@ class TablutEnv(gym.Env):
         assert self.action_space.contains(action), f"[ERR: step] Unrecognized action: {action}"
 
         info = {}
+        info['captured'] = []
 
         if self.done:
             logger.warn('Stop calling `step()` after the episode is done! Use `reset()`')
@@ -52,6 +53,7 @@ class TablutEnv(gym.Env):
                 s = []
                 # remove captured piece from render
                 for p in captured:
+                    info.get('captured').append(str_position(p.position))
                     s.append(f"{p.type} in {str_position(p.position)}")
                     if self.viewer:
                         self.viewer.geoms.remove(p.texture)
