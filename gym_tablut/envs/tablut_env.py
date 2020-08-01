@@ -37,8 +37,7 @@ class TablutEnv(gym.Env):
         """
         assert self.action_space.contains(action), f"[ERR: step] Unrecognized action: {action}"
 
-        info = {}
-        info['captured'] = []
+        info = {'captured': []}
 
         if self.done:
             logger.warn('Stop calling `step()` after the episode is done! Use `reset()`')
