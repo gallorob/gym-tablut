@@ -54,7 +54,7 @@ A draw results in 0 reward.
 ### The observations
 After each move, the observation is the board state. This can be represented in two different ways:
 1. A 2D matrix with the value of the piece on the tile (or 0 if there's no piece)
-2. A 3D matrix with RGB values for each piece (see the example below)
+2. A 3D matrix with RGB values for each piece (see the [example below](https://github.com/gallorob/gym-tablut#example-runs))
 
 ## Installation
 You can install this environment by:
