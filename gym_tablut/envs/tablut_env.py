@@ -28,6 +28,7 @@ class TablutEnv(gym.Env):
         self.player = STARTING_PLAYER
         self.rgb_state = RENDER_STATE
         self.last_moves = []
+        self.n_moves = 0
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool, dict]:
         """
@@ -82,6 +83,14 @@ class TablutEnv(gym.Env):
                 if len(self.last_moves) == 8:
                     self.last_moves.pop()
                 self.last_moves.append(self.actions[action])
+            # max moves reached
+            if self.n_moves == MAX_MOVES:
+                self.done = True
+                rewards = 0
+                info['reason'] = 'Maximum number of moves reached'
+                info['last_move'] = self.actions[action]
+                info['n_atks'] = self.board.count(ATTACKER)
+                info['n_defs'] = self.board.count(DEFENDER)
 
             # update the action space
             self.player = ATK if self.player == DEF else DEF
@@ -99,7 +108,7 @@ class TablutEnv(gym.Env):
                 info['n_defs'] = self.board.count(DEFENDER)
                 logger.debug(
                     f"Match ended; reason: No more moves available; Winner: {info.get('winner')}")
-
+        self.n_moves += 1
         obs = self.board.as_state(self.rgb_state)
 
         return obs, rewards, self.done, info
@@ -121,6 +130,8 @@ class TablutEnv(gym.Env):
         # initialize action space
         self.actions = legal_moves(self.board, STARTING_PLAYER)
         self.action_space = spaces.Discrete(len(self.actions))
+        self.last_moves = []
+        self.n_moves = 0
         logger.debug('New match started')
         return self.board.as_state(self.rgb_state)
 
