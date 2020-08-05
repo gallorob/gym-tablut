@@ -114,9 +114,9 @@ def __legal_moves(board: Board, piece: Piece, inc_row: int, inc_col: int) -> Lis
             break
         p = board.state[i, j]
         if p is None:
-            # only king can cross or land on throne
+            # only king can land on throne
             if piece.type != KING and i == board.rows // 2 and j == board.cols // 2:
-                break
+                continue
             else:
                 (ni, nj) = arr_to_pos(board, (i, j))
                 moves.append(str_position(piece.position) + '-' + str_position((ni, nj)))
