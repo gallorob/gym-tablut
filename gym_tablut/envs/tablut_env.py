@@ -70,7 +70,7 @@ class TablutEnv(gym.Env):
                 info['n_defs'] = self.board.count(DEFENDER)
                 logger.debug(f"Match ended; reason: {reason}; Winner: {info.get('winner')}")
             # threefold repetition check
-            if check_threefold_repetition(self.last_moves, self.actions[action]):
+            elif check_threefold_repetition(self.last_moves, self.actions[action]):
                 logger.debug(
                     f"Match ended; reason: Threefold repetition; DRAW")
                 self.done = True
@@ -79,35 +79,34 @@ class TablutEnv(gym.Env):
                 info['last_move'] = self.actions[action]
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
-            else:
-                if len(self.last_moves) == 8:
-                    self.last_moves.pop()
-                self.last_moves.append(self.actions[action])
             # max moves reached
-            if self.n_moves == MAX_MOVES:
+            elif self.n_moves == MAX_MOVES:
                 self.done = True
                 rewards = 0
                 info['reason'] = 'Maximum number of moves reached'
                 info['last_move'] = self.actions[action]
                 info['n_atks'] = self.board.count(ATTACKER)
                 info['n_defs'] = self.board.count(DEFENDER)
+            else:
+                if len(self.last_moves) == 8:
+                    self.last_moves.pop()
+                self.last_moves.append(self.actions[action])
 
-            # update the action space
-            self.player = ATK if self.player == DEF else DEF
-            self.actions = legal_moves(self.board, self.player)
-            self.action_space = spaces.Discrete(len(self.actions))
+                # update the action space
+                self.player = ATK if self.player == DEF else DEF
+                self.actions = legal_moves(self.board, self.player)
+                self.action_space = spaces.Discrete(len(self.actions))
 
-            # no moves for the opponent check
-            if len(self.actions) == 0:
-                self.done = True
-                rewards = CAPTURE_REWARDS.get('king')
-                info['winner'] = 'ATK' if self.player == DEF else 'DEF'
-                info['reason'] = 'No more moves available'
-                info['last_move'] = self.actions[action]
-                info['n_atks'] = self.board.count(ATTACKER)
-                info['n_defs'] = self.board.count(DEFENDER)
-                logger.debug(
-                    f"Match ended; reason: No more moves available; Winner: {info.get('winner')}")
+                # no moves for the opponent check
+                if len(self.actions) == 0:
+                    self.done = True
+                    rewards = CAPTURE_REWARDS.get('king')
+                    info['winner'] = 'ATK' if self.player == DEF else 'DEF'
+                    info['reason'] = 'No more moves available'
+                    info['n_atks'] = self.board.count(ATTACKER)
+                    info['n_defs'] = self.board.count(DEFENDER)
+                    logger.debug(
+                        f"Match ended; reason: No more moves available; Winner: {info.get('winner')}")
         self.n_moves += 1
         obs = self.board.as_state(self.rgb_state)
 
