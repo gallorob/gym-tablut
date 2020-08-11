@@ -38,6 +38,7 @@ The game also ends when no moves are available for the next player.
 During the player's turn, the valid actions are generated and can be sampled in the environment's `action_space`; each action
 corresponds to a move (`from_position-to_position`) that can be played.
 
+
 Since the moves are generated deterministically from a given board configuration, they can be learned by an RL Agent.
 
 ### The rewards
@@ -53,7 +54,7 @@ A draw results in 0 reward.
 
 ### The observations
 After each move, the observation is the board state. This can be represented in two different ways:
-1. A 2D matrix with the value of the piece on the tile (or 0 if there's no piece)
+1. A 2D matrix with the value of the piece on the tile (or 0 if there's no piece) (**NOTE**: This is the default observation in `TablutV1`)
 2. A 3D matrix with RGB values for each piece (see the [example below](https://github.com/gallorob/gym-tablut#example-runs))
 
 ## Installation
