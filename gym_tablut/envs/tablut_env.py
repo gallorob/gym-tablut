@@ -1,11 +1,8 @@
-from typing import Any
-
 import gym
 from gym import spaces, logger
 from gym.utils import seeding
 
 from gym_tablut.envs._game_engine import *
-from gym_tablut.envs._globals import *
 from gym_tablut.envs._utils import *
 
 
@@ -19,21 +16,30 @@ class TablutEnv(gym.Env):
         """
         Create the environment
         """
+        # game variables
+        self.variant = 'tablut'
+        self.game_engine = GameEngine(self.variant)
+        self.players = self.game_engine.players
+        self.tiles = self.game_engine.tiles
+        self.n_rows = self.game_engine.n_rows
+        self.n_cols = self.game_engine.n_cols
+        self.board = np.zeros((self.n_rows, self.n_cols))
+        self.player = self.game_engine.STARTING_PLAYER
+        self.last_moves: List[Tuple[int, int, int, int]] = []
+        self.n_moves = 0
         # environment variables
-        self.action_space = spaces.Discrete(N_ROWS * N_COLS * N_ROWS * N_COLS)  # from(row, col) -> to(row, col)
+        # from(row, col) -> to(row, col)
+        self.action_space = spaces.Discrete(self.n_rows * self.n_cols * self.n_rows * self.n_cols)
         self.valid_actions = None
         self.observation_space = None
         self.done = False
         self.steps_beyond_done = None
         self.viewer = None
-        # game variables
-        self.board = np.zeros((N_ROWS, N_COLS))
         self.np_random = seeding.np_random(0)
-        self.player = STARTING_PLAYER
-        self.last_moves: List[Tuple[int, int, int, int]] = []
-        self.n_moves = 0
-        self.variant = 'tablut'
-        self.game_engine = GameEngine(self.variant)
+        # location independent assets directory
+        self.assets = {}
+        self.square_width = 0
+        self.square_height = 0
 
     def step(self, action: int) -> Tuple[np.ndarray, int, bool, dict]:
         """
@@ -53,13 +59,13 @@ class TablutEnv(gym.Env):
             res = self.game_engine.apply_move(self.board, move)
             move_str = res.get('move')
             reward = res.get('reward')
-            logger.debug(f"[{str(self.n_moves + 1).zfill(int(np.log10(MAX_MOVES)) + 1)}/{MAX_MOVES}] "
-                         f"{'ATK' if self.player == ATK else 'DEF'} : {move_str}")
+            logger.debug(f"[{str(self.n_moves + 1).zfill(int(np.log10(self.game_engine.MAX_MOVES)) + 1)}/{self.game_engine.MAX_MOVES}] "
+                         f"{'ATK' if self.player == self.players.ATK else 'DEF'} : {move_str}")
             if res.get('game_over', False):
                 self.done = True
                 info = {
                     'winner': self.player,
-                    'reason': 'King escaped' if self.player == DEF else 'King was captured',
+                    'reason': 'King escaped' if self.player == self.players.DEF else 'King was captured',
                     'move': move_str
                 }
             else:
@@ -82,21 +88,21 @@ class TablutEnv(gym.Env):
                     self.last_moves.append(move)
 
                     # update the action space
-                    self.player = ATK if self.player == DEF else DEF
+                    self.player = self.players.ATK if self.player == self.players.DEF else self.players.DEF
                     self.valid_actions = self.game_engine.legal_moves(self.board, self.player)
 
                     # no moves for the opponent check
                     if len(self.valid_actions) == 0:
                         self.done = True
-                        reward += CAPTURE_REWARDS.get('king')
+                        reward += 100
                         info = {
-                            'winner': 'ATK' if self.player == DEF else 'DEF',
+                            'winner': 'ATK' if self.player == self.players.DEF else 'DEF',
                             'reason': 'Opponents has no moves available',
                             'move': move_str
                         }
             if self.done:
                 logger.debug(f"Match ended; reason: {info.get('reason')}; "
-                             f"Winner: {'ATK' if info.get('winner') == ATK else ('DEF' if info.get('winner') == DEF else 'DRAW')}")
+                             f"Winner: {'ATK' if info.get('winner') == self.players.ATK else ('DEF' if info.get('winner') == self.players.DEF else 'DRAW')}")
             self.n_moves += 1
 
         return self.board, reward, self.done, info
@@ -109,10 +115,10 @@ class TablutEnv(gym.Env):
         """
         self.done = False
         # place pieces
-        self.board = np.zeros((N_ROWS, N_COLS))
+        self.board = np.zeros((self.n_rows, self.n_cols))
         self.game_engine.fill_board(self.board)
         # initialize action space
-        self.valid_actions = self.game_engine.legal_moves(self.board, STARTING_PLAYER)
+        self.valid_actions = self.game_engine.legal_moves(self.board, self.game_engine.STARTING_PLAYER)
         self.last_moves = []
         self.n_moves = 0
         logger.debug('New match started')
@@ -125,46 +131,68 @@ class TablutEnv(gym.Env):
         :param mode: The rendering mode to use
         """
         from gym.envs.classic_control import rendering
+        import os
 
         if self.viewer is None:
-            self.viewer = rendering.Viewer(SCREEN_WIDTH, SCREEN_HEIGHT)
-            
+            assets_dir = os.path.dirname(__file__)
+            assets_dir = os.path.join(assets_dir, 'assets')
+            # assets for tiles and background
+            self.assets = {
+                self.tiles.DEFENDER: os.path.join(assets_dir, 'defender.png'),
+                self.tiles.ATTACKER: os.path.join(assets_dir, 'attacker.png'),
+                self.tiles.KING: os.path.join(assets_dir, 'king.png'),
+                self.tiles.THRONE: os.path.join(assets_dir, 'throne.png'),
+                self.tiles.CORNER: os.path.join(assets_dir, 'throne.png'),
+                self.tiles.BACKGROUND: os.path.join(assets_dir, 'background.png')
+            }
+            # game & rendering variables
+            screen_width = 600
+            screen_height = 600
+            self.square_width = screen_width / (self.n_cols + 1)
+            self.square_height = screen_height / (self.n_rows + 1)
+            board_colors = [
+                [0.5, 0.33, 0.16],
+                [0.4, 0.26, 0.13]
+            ]
+
+            self.viewer = rendering.Viewer(screen_width, screen_height)
+
             # background
-            background = rendering.Image(ASSETS.get(BACKGROUND), SCREEN_WIDTH, SCREEN_HEIGHT)
+            background = rendering.Image(self.assets.get(self.tiles.BACKGROUND), screen_width, screen_height)
             background.set_color(1., 1., 1.)
-            background.add_attr(rendering.Transform(translation=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)))
+            background.add_attr(rendering.Transform(translation=(screen_width / 2, screen_height / 2)))
             self.viewer.add_geom(background)
             # add the tiles
             c = 0
-            for i in range(N_ROWS, 0, -1):
-                for j in range(1, N_COLS + 1):
-                    tile = rendering.make_polygon([(i * SQUARE_WIDTH, j * SQUARE_HEIGHT),
-                                                   ((i + 1) * SQUARE_WIDTH, j * SQUARE_HEIGHT),
-                                                   ((i + 1) * SQUARE_WIDTH, (j + 1) * SQUARE_HEIGHT),
-                                                   (i * SQUARE_WIDTH, (j + 1) * SQUARE_HEIGHT)])
-                    r, g, b = BOARD_COLOR_0 if c == 0 else BOARD_COLOR_1
+            for i in range(self.n_rows, 0, -1):
+                for j in range(1, self.n_cols + 1):
+                    tile = rendering.make_polygon([(i * self.square_width, j * self.square_height),
+                                                   ((i + 1) * self.square_width, j * self.square_height),
+                                                   ((i + 1) * self.square_width, (j + 1) * self.square_height),
+                                                   (i * self.square_width, (j + 1) * self.square_height)])
+                    r, g, b = board_colors[c]
                     tile.set_color(r, g, b)
                     c = 1 if c == 0 else 0
                     self.viewer.add_geom(tile)
             # throne
-            throne = rendering.Image(ASSETS.get(THRONE), SQUARE_WIDTH, SQUARE_HEIGHT)
+            throne = rendering.Image(self.assets.get(self.tiles.THRONE), self.square_width, self.square_height)
             throne.set_color(1., 1., 1.)
-            throne.add_attr(rendering.Transform(translation=((N_COLS // 2 + 1) * SQUARE_WIDTH + (SQUARE_WIDTH / 2),
-                                                             (N_ROWS // 2 + 1) * SQUARE_HEIGHT + (SQUARE_HEIGHT / 2))))
+            throne.add_attr(rendering.Transform(translation=((self.n_cols // 2 + 1) * self.square_width + (self.square_width / 2),
+                                                             (self.n_rows // 2 + 1) * self.square_height + (self.square_height / 2))))
             self.viewer.add_geom(throne)
 
         # add_pieces_to_render(self.viewer, self.board)
         for i in range(self.board.shape[0]):
             for j in range(self.board.shape[1]):
                 p = self.board[i, j]
-                if p != EMPTY:
+                if p != self.tiles.EMPTY:
                     r = i + 1
                     c = j + 1
-                    tile = rendering.Image(ASSETS.get(p), SQUARE_WIDTH, SQUARE_HEIGHT)
+                    tile = rendering.Image(self.assets.get(p), self.square_width, self.square_height)
                     tile.set_color(1., 1., 1.)
-                    tile.add_attr(rendering.Transform(translation=(c * SQUARE_WIDTH + (SQUARE_WIDTH / 2),
-                                                                   (self.board.shape[0] - r + 1) * SQUARE_HEIGHT + (
-                                                                           SQUARE_HEIGHT / 2))))
+                    tile.add_attr(rendering.Transform(translation=(c * self.square_width + (self.square_width / 2),
+                                                                   (self.board.shape[0] - r + 1) * self.square_height + (
+                                                                           self.square_height / 2))))
                     self.viewer.add_onetime(tile)
 
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')

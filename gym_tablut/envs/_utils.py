@@ -2,7 +2,12 @@ from typing import Tuple, List
 
 import numpy as np
 
-from gym_tablut.envs._globals import DIRECTIONS
+
+DIRECTIONS = [(-1, 0),  # up
+              (0, 1),  # right
+              (1, 0),  # down
+              (0, -1)  # left
+              ]
 
 
 def decimal_to_space(value: int, rows: int, cols: int) -> Tuple[int, int, int, int]:
