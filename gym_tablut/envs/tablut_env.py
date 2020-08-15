@@ -29,7 +29,7 @@ class TablutEnv(gym.Env):
         self.n_moves = 0
         # environment variables
         # from(row, col) -> to(row, col)
-        self.action_space = spaces.Discrete(self.n_rows * self.n_cols * self.n_rows * self.n_cols)
+        self.action_space = None
         self.valid_actions = None
         self.observation_space = None
         self.done = False
@@ -119,6 +119,7 @@ class TablutEnv(gym.Env):
         self.game_engine.fill_board(self.board)
         # initialize action space
         self.valid_actions = self.game_engine.legal_moves(self.board, self.game_engine.STARTING_PLAYER)
+        self.action_space = spaces.Discrete(len(IDX_TO_POS.keys()))
         self.last_moves = []
         self.n_moves = 0
         logger.debug('New match started')

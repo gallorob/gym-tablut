@@ -9,28 +9,26 @@ DIRECTIONS = [(-1, 0),  # up
               (0, -1)  # left
               ]
 
+IDX_TO_POS = {}
+POS_TO_IDX = {}
+
 
 def decimal_to_space(value: int, rows: int, cols: int) -> Tuple[int, int, int, int]:
     """
     Convert an integer to the 4D tuple `[rows - 1, cols - 1, rows - 1, cols - 1]`, checking that the value is positive
-    and that `value < rows * cols * rows * cols`
+    and that is a valid index
 
     :param value: The integer to convert
     :param rows: The number of rows
     :param cols: The number of cols
     :return: The 4D tuple representation
     """
+    if len(IDX_TO_POS.keys()) == 0:
+        make_dictionaries(rows, cols)
     assert value >= 0, f'[Conversion error]: Value is negative: {value}'
-    assert value < rows * cols * rows * cols, f'[Conversion error]: Value {value} out of range in space [{rows}, ' \
-                                              f'{cols}, {rows}, {cols}]'
-    fi = value // (cols * rows * cols)
-    r = value - (fi * cols * rows * cols)
-    fj = r // (rows * cols)
-    r -= fj * (rows * cols)
-    ti = r // cols
-    r -= ti * cols
-    tj = r
-    return fi, fj, ti, tj
+    assert value in IDX_TO_POS.keys(), f'[Conversion error]: Invalid index value {value}'
+    return IDX_TO_POS.get(value)
+
 
 
 def space_to_decimal(values: Tuple[int, int, int, int], rows: int, cols: int) -> int:
@@ -43,13 +41,51 @@ def space_to_decimal(values: Tuple[int, int, int, int], rows: int, cols: int) ->
     :param cols: The number of cols
     :return: The decimal representation
     """
+    if len(IDX_TO_POS.keys()) == 0:
+        make_dictionaries(rows, cols)
     assert len(values) == 4, f'[Conversion error]: Unknown space value {values}'
     fi, fj, ti, tj = values
     assert fi < rows, f'[Conversion error]: From {values}: Invalid fi {fi} in [{rows}, {cols}, {rows}, {cols}]'
     assert fj < cols, f'[Conversion error]: From {values}: Invalid fj {fj} in [{rows}, {cols}, {rows}, {cols}]'
     assert ti < rows, f'[Conversion error]: From {values}: Invalid ti {ti} in [{rows}, {cols}, {rows}, {cols}]'
     assert tj < cols, f'[Conversion error]: From {values}: Invalid tj {tj} in [{rows}, {cols}, {rows}, {cols}]'
-    return (fi * cols * rows * cols) + (fj * rows * cols) + (ti * cols) + tj
+    assert values in POS_TO_IDX.keys(), f'[Conversion error]: Invalid space value {values}'
+    return POS_TO_IDX.get(values)
+
+
+def make_dictionaries(rows: int, cols: int):
+    """
+    Since we have that a move is
+
+    .. math::
+        tile_from \\rightarrow tile_to
+
+    knowing that the moves lie on a straight line and that
+
+    .. math::
+        tile_from \\neq tile_to
+
+    , we can reduce the actual action space and map the
+
+    .. math::
+        index \\leftrightarrow (row_from , col_from , row_to , col_to)
+
+    relation.
+
+    :param rows: The number of rows
+    :param cols: The number of columns
+    """
+    c = 0
+    for i in range(rows):
+        for j in range(cols):
+            for inc_i, inc_j in DIRECTIONS:
+                s_i, s_j = i, j
+                while 0 <= s_i + inc_i < rows and 0 <= s_j + inc_j < cols:
+                    s_i += inc_i
+                    s_j += inc_j
+                    IDX_TO_POS[c] = (i, j, s_i, s_j)
+                    POS_TO_IDX[(i, j, s_i, s_j)] = c
+                    c += 1
 
 
 def vector_mask(vector: np.array, valid_indexes: np.array) -> np.array:

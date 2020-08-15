@@ -31,7 +31,7 @@ class GameEngine:
                 'STARTING_PLAYER': self.players.ATK,
                 'N_ROWS': 9,
                 'N_COLS': 9,
-                'MAX_REWARD': 100 + 16
+                'MAX_REWARD': 100 + 16 + 16
             }
         }
         self.info = {}
