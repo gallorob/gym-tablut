@@ -41,6 +41,7 @@ class GameEngine:
         self.STARTING_PLAYER = self.rules.get('STARTING_PLAYER')
         self.n_rows = self.rules.get('N_ROWS')
         self.n_cols = self.rules.get('N_COLS')
+        self.vector_mask = vector_mask
 
     def fill_board(self, board: np.array):
         if self.variant == 'tablut':
@@ -132,6 +133,11 @@ class GameEngine:
                 else:
                     continue
         return value
+
+    def alt_apply_move(self, board: np.ndarray, action: int) -> dict:
+        move = decimal_to_space(action, board.shape[0], board.shape[1])
+        return self.apply_move(board=board,
+                               move=move)
 
     def apply_move(self, board: np.array, move: Tuple[int, int, int, int]) -> dict:
         fi, fj, ti, tj = move
