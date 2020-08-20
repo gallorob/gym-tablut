@@ -114,6 +114,7 @@ class TablutEnv(gym.Env):
         :return: The state observations
         """
         self.done = False
+        self.player = self.game_engine.STARTING_PLAYER
         # place pieces
         self.board = np.zeros((self.n_rows, self.n_cols))
         self.game_engine.fill_board(self.board)
