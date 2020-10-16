@@ -30,7 +30,6 @@ def decimal_to_space(value: int, rows: int, cols: int) -> Tuple[int, int, int, i
     return IDX_TO_POS.get(value)
 
 
-
 def space_to_decimal(values: Tuple[int, int, int, int], rows: int, cols: int) -> int:
     """
     Convert a 4D tuple to its decimal representation, knowing that the space is defined as [rows, cols, rows, cols] with
