@@ -1,9 +1,7 @@
 import os
 import configparser
 
-# __all__ = ['BACKGROUND', 'EMPTY', 'CORNER', 'THRONE', 'KING']
-
-curr_dir = os.path.dirname(__file__)
+curr_dir = os.getcwd()
 config_file = os.path.join(curr_dir, 'configs.ini')
 
 config = configparser.ConfigParser()
