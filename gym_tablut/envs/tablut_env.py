@@ -57,6 +57,7 @@ class TablutEnv(gym.Env):
             move = decimal_to_space(action, self.board.shape[0], self.board.shape[1])
             res = self.game_engine.apply_move(self.board, move)
             move_str = res.get('move')
+            info['move'] = move_str
             reward = res.get('reward')
             logger.debug(f"[{str(self.n_moves + 1).zfill(int(np.log10(self.game_engine.MAX_MOVES)) + 1)}/{self.game_engine.MAX_MOVES}] "
                          f"{'ATK' if self.player == ATK else 'DEF'} : {move_str}")
